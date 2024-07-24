@@ -46,6 +46,7 @@ def import_comsol(dx: int, dy: int, dz: int, r_tol: float = 1e-4, case=None, n_s
 
 
 def get_fields_on_sphere(x, y, z, ex, ey, ez):
+    x, y, z = y, z, x
     rho = np.sqrt(x**2 + y**2)
     phi = np.arctan2(y, x)
     theta = np.arctan2(rho, z)
@@ -292,14 +293,14 @@ def find_optimal_parameters(meep=None, case=None, max_order=2, cartesian=True, p
         with open(f"data/meep/{meep}.pickle", "rb") as fd:
             theta_meas, phi_meas, e_r_meas, e_theta_meas, e_phi_meas = pickle.load(fd)
     else:
-        case = f"comsol/{case}"
+        # case = f"comsol/{case}"
         if "000" in meep:
             _, _, _, _, theta_meas, phi_meas, e_r_meas, e_theta_meas, e_phi_meas = import_comsol(
-                0, 0, 0, case=case, compensate_symmetry=compensate_symmetry
+                0, 0, 0, case=f"mathematica/{case}", compensate_symmetry=compensate_symmetry
             )
         else:
             _, _, _, _, theta_meas, phi_meas, e_r_meas, e_theta_meas, e_phi_meas = import_comsol(
-                0, 0, 2, case=case, compensate_symmetry=compensate_symmetry)
+                0, 0, 2, case=f"mathematica/{case}", compensate_symmetry=compensate_symmetry)
         if "comsol" in case:
             e_r_meas, e_theta_meas, e_phi_meas = (np.conj(ei) for ei in (e_r_meas, e_theta_meas, e_phi_meas))
     meas_max = max(np.max(np.abs(e_r_meas)), np.max(np.abs(e_theta_meas)), np.max(np.abs(e_phi_meas)))
@@ -401,7 +402,7 @@ def find_optimal_parameters(meep=None, case=None, max_order=2, cartesian=True, p
         for ind, ax, ay, az, _ in iterate_over(max_order):
             order = ax+ay+az
             size = (np.abs(amplitudes[ind]) / max_size)**2 * 20 + 2
-            color = plt.get_cmap("autumn")(order/(max_order + 1))
+            color = plt.get_cmap("autumn")(1 - order/(max_order + 1))
             axis.plot(ax, ay, ".", zs=az, markersize=size,
                       color=color)
             axis.plot((ax, ax, ), (ay, ay, ), (-.1, az, ), "-", color=color, zorder=max_order - order,
@@ -420,7 +421,7 @@ def find_optimal_parameters(meep=None, case=None, max_order=2, cartesian=True, p
             for m in range(-l, l + 1):
                 order = l
                 size = (np.abs(amplitudes[ind]) / max_size)**2 * 20 + 2
-                color = plt.get_cmap("autumn")(order/(max_order + 1))
+                color = plt.get_cmap("autumn")(1 - order/(max_order + 1))
                 axis.plot(m, l, ".", markersize=size,
                           color=color)
                 ind += 1
@@ -449,9 +450,9 @@ def find_optimal_parameters(meep=None, case=None, max_order=2, cartesian=True, p
 
 
 def main():
-    # plot_all_cartesian_results(1, "mathematica/eps_4")
+    # plot_all_cartesian_results(1, "mathematica/eps_2")
     # plot_all_spherical_results(1, "mathematica/eps_4")
-    # do_sweep()
+    do_sweep()
     plot_sweep_results()
     # do_all_moments_plots()
 
@@ -490,18 +491,18 @@ def do_all_moments_plots():
 
 
 def do_sweep():
-    for max_order in range(6, 7):
-        for eps_zz in (5, ):
+    for max_order in range(4):
+        for eps_zz in (1, 2, 3, ):  # (1, 2, 3, 4, 5, 6, 8, 10, 18, 32, 56, 100, 200, ):
             print(f"--- {eps_zz=}, {max_order=}")
-            res = inverse_problem(eps_zz, max_order=max_order, run_meep=False)
+            res = inverse_problem(eps_zz, max_order=max_order, run_meep=False, inverse_crime=eps_zz > 8)
             with open(f"results/sweep/eps_{eps_zz}_max-order_{max_order}.pickle", "wb") as fd:
                 pickle.dump(res, fd)
 
 
 def plot_sweep_results():
     results = dict()
-    eps_zzs = (1, 1.5, 2, 3, 4, 5, 6, 8, 10, )
-    max_orders = list(range(6 + 1))
+    eps_zzs = (1, 2, 3, 4, 5, 6, 8, 10, 18, 32, 56, 100, 200, )
+    max_orders = list(range(2 + 1))
     for eps_zz in eps_zzs:
         for max_order in max_orders:
             filename = f"results/sweep/eps_{eps_zz}_max-order_{max_order}.pickle"
@@ -569,16 +570,16 @@ def plot_sweep_results():
     for ind, max_order in enumerate(max_orders):
         if ind % 2 == 1 or max_order < 2:
             continue
-        plt.plot(
+        plt.semilogx(
             eps_zzs,
             [100 - results[(eps_zz, max_order)][("200", "spherical")] * 100 for eps_zz in eps_zzs], f"-",
-            color=plt.get_cmap("autumn")(ind/len(max_orders)),
+            color=plt.get_cmap("autumn")(1 - ind/len(max_orders)),
             label=f"l_max={max_order}"
         )
         plt.plot(
             eps_zzs,
             [100 - results[(eps_zz, max_order)][("200", "spherical")] * 100 for eps_zz in eps_zzs], f".",
-            color=plt.get_cmap("autumn")(ind/len(max_orders)),
+            color=plt.get_cmap("autumn")(1 - ind/len(max_orders)),
             label=f"l_max={max_order}"
         )
     plt.xlabel("eps_zz")
@@ -617,7 +618,7 @@ def plot_sweep_results():
     plt.show()
 
 
-def inverse_problem(eps_zz, max_order=0, plot=False, run_meep=False):
+def inverse_problem(eps_zz, max_order=0, plot=False, run_meep=False, inverse_crime=False):
     # plot_all_results(2, "mathematica/eps_10")
     # return
     if plot:
@@ -633,6 +634,11 @@ def inverse_problem(eps_zz, max_order=0, plot=False, run_meep=False):
         6: {False: 100, True: 200},
         8: {False: 120, True: 120},
         10: {False: 170, True: 170},
+        18: {False: -1, True: -1},
+        32: {False: -1, True: -1},
+        56: {False: -1, True: -1},
+        100: {False: -1, True: -1},
+        200: {False: -1, True: -1}
     }[eps_zz]
     if run_meep:
         run_simulation(
@@ -649,7 +655,7 @@ def inverse_problem(eps_zz, max_order=0, plot=False, run_meep=False):
             resolution=res[True],
             save_name=f"sim_results_200_res_{res[True]}_eps_{eps_zz}"
         )
-    comsol_direct = False
+    comsol_direct = inverse_crime
     compensate_symmetry = True
     case = f"eps_{eps_zz}"
     results = {
