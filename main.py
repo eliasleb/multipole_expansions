@@ -279,7 +279,7 @@ def plot_spherical_field(
 
 
 def find_optimal_parameters(meep=None, case=None, max_order=2, cartesian=True, plot_during=False, comsol_direct=False,
-                            compensate_symmetry=False):
+                            compensate_symmetry=False, print_solution=True):
     print(f"Running {meep=}, {case=}, {max_order=}, {cartesian=}", end=" ")
 
     data_ref = {}
@@ -407,6 +407,8 @@ def find_optimal_parameters(meep=None, case=None, max_order=2, cartesian=True, p
                       color=color)
             axis.plot((ax, ax, ), (ay, ay, ), (-.1, az, ), "-", color=color, zorder=max_order - order,
                       alpha=.2)
+            if print_solution:
+                print(ax, ay, az, amplitudes[ind])
         axis.set_xlim(0, max_order)
         axis.set_ylim(0, max_order)
         axis.set_zlim(0, max_order)
@@ -424,6 +426,8 @@ def find_optimal_parameters(meep=None, case=None, max_order=2, cartesian=True, p
                 color = plt.get_cmap("autumn")(1 - order/(max_order + 1))
                 axis.plot(m, l, ".", markersize=size,
                           color=color)
+                if print_solution:
+                    print(l, m, amplitudes[ind])
                 ind += 1
         axis.set_ylim(-.2, max_order + .2)
         axis.set_xlim(-max_order - .2, max_order + .2)
@@ -450,9 +454,13 @@ def find_optimal_parameters(meep=None, case=None, max_order=2, cartesian=True, p
 
 
 def main():
+    # find_optimal_parameters(meep=f"sim_results_200_res_-1_eps_200", case="eps_200",
+    #                         plot_during=False,
+    #                         comsol_direct=True, max_order=5, cartesian=False,
+    #                         compensate_symmetry=False)
     # plot_all_cartesian_results(1, "mathematica/eps_2")
     # plot_all_spherical_results(1, "mathematica/eps_4")
-    do_sweep()
+    # do_sweep()
     plot_sweep_results()
     # do_all_moments_plots()
 
@@ -491,10 +499,10 @@ def do_all_moments_plots():
 
 
 def do_sweep():
-    for max_order in range(4):
-        for eps_zz in (1, 2, 3, ):  # (1, 2, 3, 4, 5, 6, 8, 10, 18, 32, 56, 100, 200, ):
+    for max_order in range(0, 7):
+        for eps_zz in (6, 8, 10, 18, 32, ):  # (1, 2, 3, 4, 5, 6, 8, 10, 18, 32, 56, 100, 200, ):
             print(f"--- {eps_zz=}, {max_order=}")
-            res = inverse_problem(eps_zz, max_order=max_order, run_meep=False, inverse_crime=eps_zz > 8)
+            res = inverse_problem(eps_zz, max_order=max_order, run_meep=False, inverse_crime=eps_zz > 10)
             with open(f"results/sweep/eps_{eps_zz}_max-order_{max_order}.pickle", "wb") as fd:
                 pickle.dump(res, fd)
 
@@ -502,7 +510,7 @@ def do_sweep():
 def plot_sweep_results():
     results = dict()
     eps_zzs = (1, 2, 3, 4, 5, 6, 8, 10, 18, 32, 56, 100, 200, )
-    max_orders = list(range(2 + 1))
+    max_orders = list(range(6 + 1))
     for eps_zz in eps_zzs:
         for max_order in max_orders:
             filename = f"results/sweep/eps_{eps_zz}_max-order_{max_order}.pickle"

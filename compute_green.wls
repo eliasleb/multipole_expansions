@@ -30,7 +30,7 @@ margin=8/Sqrt@\[Epsilon]zzn;
 \[Phi]n=Subdivide[Clip[\[Pi]/2-margin,{0,2\[Pi]}],Clip[\[Pi]/2+margin,{0,2\[Pi]}],sampleNumber];
 \[Theta]n=Subdivide[Clip[\[Pi]/2-margin/2,{0,\[Pi]}],Clip[\[Pi]/2+margin/2,{0,\[Pi]}],Round[sampleNumber/2]];
 k0n=2\[Pi];
-numeralize[g_]:=Outer[
+numeralize[g_]:=Parallelize@Outer[
 Function[{\[Theta],\[Phi]},
 N[g/.{y->rn Cos[\[Phi]]Sin[\[Theta]],z->rn Sin[\[Phi]]Sin[\[Theta]],x->rn Cos[\[Theta]],\[Epsilon]zz->\[Epsilon]zzn,k0->k0n}]
 ],
