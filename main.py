@@ -480,26 +480,25 @@ def find_optimal_parameters(meep=None, case=None, max_order=2, cartesian=True, p
 
 
 def main():
-    eps = 1
+    eps = 4
     # find_optimal_parameters(meep=f"sim_results_200_res_-1_eps_{eps}", case=f"eps_{eps}",
     #                         plot_during=True,
     #                         comsol_direct=True, max_order=2, cartesian=True,
     #                         compensate_symmetry=False, print_solution=True)
-    find_optimal_parameters(meep=f"sim_results_200_res_-1_eps_{eps}", case=f"eps_{eps}",
-                            plot_during=True,
-                            comsol_direct=True, max_order=2, cartesian=False,
-                            compensate_symmetry=False, print_solution=True)
-    eps = 10_000
-    find_optimal_parameters(meep=f"sim_results_200_res_-1_eps_{eps}", case=f"eps_{eps}",
-                            plot_during=True,
-                            comsol_direct=True, max_order=2, cartesian=False,
-                            compensate_symmetry=False, print_solution=True)
-
-    # plot_all_cartesian_results(2, f"mathematica/eps_{eps}")
-    # plot_all_spherical_results(2, f"mathematica/eps_{eps}")
+    # find_optimal_parameters(meep=f"sim_results_200_res_-1_eps_{eps}", case=f"eps_{eps}",
+    #                         plot_during=True,
+    #                         comsol_direct=True, max_order=2, cartesian=False,
+    #                         compensate_symmetry=False, print_solution=True)
+    # eps = 10_000
+    # find_optimal_parameters(meep=f"sim_results_200_res_-1_eps_{eps}", case=f"eps_{eps}",
+    #                         plot_during=True,
+    #                         comsol_direct=True, max_order=2, cartesian=False,
+    #                         compensate_symmetry=False, print_solution=True)
+    plot_all_cartesian_results(1, f"mathematica/eps_{eps}")
+    plot_all_spherical_results(1, f"mathematica/eps_{eps}")
     plt.show()
     # do_sweep()
-    plot_sweep_results()
+    # plot_sweep_results()
     # do_all_moments_plots()
 
 
