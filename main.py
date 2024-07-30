@@ -125,14 +125,12 @@ def plot_all_cartesian_results(max_order=3, case=None):
         for iy in range(max_order + 1 - ix):
             for iz in range(max_order + 1 - ix - iy):
                 _, _, _, r, theta, phi, e_r, e_theta, e_phi = import_comsol(ix, iy, iz, case=case)
-                # plot_all(ix, iy, iz, theta, phi, e_r, e_theta, e_phi)
                 overall_max = max(np.max(np.abs(e_r)), np.max(np.abs(e_theta)), np.max(np.abs(e_phi)))
                 e_r, e_theta, e_phi = e_r / overall_max, e_theta / overall_max, e_phi / overall_max
                 plt.figure(figsize=(15, 3))
                 plot_spherical_field(theta, phi, (e_r, e_theta, e_phi), title=f"{ix}, {iy}, {iz}")
                 plt.tight_layout()
                 plt.savefig(f"figs/reference_{ix}_{iy}_{iz}.pdf")
-    plt.show()
 
 
 def plot_all_spherical_results(max_order=3, case=None):
@@ -167,13 +165,21 @@ def run_simulation(save_name, case, d2x=False, diag=(1, 1, 1), resolution=100):
     plt.show(block=False)
 
 
-def iterate_over(max_order):
+def iterate_over_cartesian(max_order):
     xyz_ind = 0
     for mx in range(max_order + 1):
         for my in range(0, max(0, max_order - mx + 1)):
             for mz in range(0, max(0, max_order - mx - my + 1)):
                 yield xyz_ind, mx, my, mz, 1.
                 xyz_ind += 1
+
+
+def iterate_over_spherical(max_order):
+    lm_ind = 0
+    for l in range(max_order + 1):
+        for m in range(-l, l + 1):
+            yield lm_ind, l, m, 1.
+            lm_ind += 1
 
 
 def iterate_over_spherical_then_cartesian(max_order, return_lm=False):
@@ -205,13 +211,6 @@ def norm(theta, er, et, ep, p=2):
 def phi_split_sinusoidal(phi, theta):
     assert np.all((0 <= phi)*(phi <= 2 * np.pi))
     return (phi - np.pi) * np.sin(theta) + np.pi
-    # range1, range2, range3 = phi <= np.pi / 2, (np.pi / 2 < phi) * (phi <= 3 * np.pi / 2), 3 * np.pi / 2 < phi
-    # phi_split = phi
-    # phi_split[range1] = phi[range1] * np.sin(theta[range1])
-    # phi_split[range2] = (phi[range2] - np.pi) * np.sin(theta[range2]) + np.pi
-    # phi_split[range3] = (phi[range3] - 2 * np.pi) * np.sin(theta[range3]) + 2 * np.pi
-    #
-    # return phi_split
 
 
 def plot_spherical_grid():
@@ -232,69 +231,93 @@ def plot_spherical_field(
         theta, phi, e, e_comp=None, title=""
 ):
     kwargs = dict(cmap="jet", levels=np.linspace(0, 1, 11))
-    do_comp = e_comp is not None
     to_plot = spherical_vector_to_cartesian(theta, phi, e)
-    if do_comp:
+    e_max = np.max(np.abs(np.array(to_plot)))
+    to_plot /= e_max
+    if e_comp is not None:
         comp_to_plot = spherical_vector_to_cartesian(theta, phi, e_comp)
+        comp_max = np.max(np.abs(np.array(comp_to_plot)))
+        comp_to_plot /= comp_max
         n_rows = 2
     else:
+        comp_to_plot = None
         n_rows = 1
     # for i, (meas, fitted) in enumerate(zip(to_plot, fitted_for_plot)):
     #     to_plot[i][np.isnan(meas)] = 0.
     #     fitted_for_plot[i][np.isnan(fitted)] = 0.
     phi_for_plot = phi_split_sinusoidal(phi + np.pi, theta) * 180 / np.pi
+
+    def set_lims():
+        plt.xlim(np.min(phi_for_plot), np.max(phi_for_plot))
+        plt.ylim(np.min(theta) * 180 / np.pi, np.max(theta) * 180 / np.pi)
+
     plt.clf()
     plt.subplot(n_rows, 3, 1)
     plt.tricontourf(phi_for_plot, theta * 180 / np.pi, np.abs(to_plot[0]), **kwargs)
     plt.ylabel("θ (°)")
     plot_spherical_grid()
+    set_lims()
 
     plt.subplot(n_rows, 3, 2)
     plt.tricontourf(phi_for_plot, theta * 180 / np.pi, np.abs(to_plot[1]), **kwargs)
     plt.title(title)
     plot_spherical_grid()
+    set_lims()
 
     plt.subplot(n_rows, 3, 3)
     plt.tricontourf(phi_for_plot, theta * 180 / np.pi, np.abs(to_plot[2]), **kwargs)
     plot_spherical_grid()
+    set_lims()
 
-    if do_comp:
+    if comp_to_plot is not None:
         plt.subplot(n_rows, 3, 4)
         plt.tricontourf(phi_for_plot, theta * 180 / np.pi, np.abs(comp_to_plot[0]), **kwargs)
         plt.ylabel("θ (°)")
         plt.xlabel("φ (°)")
         plot_spherical_grid()
+        set_lims()
 
         plt.subplot(n_rows, 3, 5)
         plt.tricontourf(phi_for_plot, theta * 180 / np.pi, np.abs(comp_to_plot[1]), **kwargs)
         plt.xlabel("φ (°)")
         plt.title("Measurement")
         plot_spherical_grid()
+        set_lims()
 
         plt.subplot(n_rows, 3, 6)
         plt.tricontourf(phi_for_plot, theta * 180 / np.pi, np.abs(comp_to_plot[2]), **kwargs)
         plt.xlabel("φ (°)")
         plt.colorbar()
         plot_spherical_grid()
+        set_lims()
 
 
 def find_optimal_parameters(meep=None, case=None, max_order=2, cartesian=True, plot_during=False, comsol_direct=False,
-                            compensate_symmetry=False, print_solution=True):
+                            compensate_symmetry=False, print_solution=False):
     print(f"Running {meep=}, {case=}, {max_order=}, {cartesian=}", end=" ")
 
-    data_ref = {}
+    data_ref_cartesian = {}
+    data_ref_spherical = {}
     theta, phi, e_r, e_theta, e_phi = (None, ) * 5
-    for _, mx, my, mz, _ in iterate_over(max_order):
+    for _, mx, my, mz, _ in iterate_over_cartesian(max_order):
         _, _, _, r, theta, phi, e_r, e_theta, e_phi = import_comsol(mx, my, mz, case=f"mathematica/{case}")
-        ref_max = max(np.max(np.abs(e_r)), np.max(np.abs(e_theta)), np.max(np.abs(e_phi)))
-        data_ref[(mx, my, mz)] = e_r / ref_max, e_theta / ref_max, e_phi / ref_max
+        data_ref_cartesian[(mx, my, mz)] = np.array((e_r, e_theta, e_phi))
+    for _, mx, my, mz, coeff, l, m in iterate_over_spherical_then_cartesian(max_order, return_lm=True):
+        if (l, m) not in data_ref_spherical:
+            data_ref_spherical[(l, m)] = 0.
+        data_ref_spherical[(l, m)] = data_ref_cartesian[(mx, my, mz)] * coeff + data_ref_spherical[(l, m)]
+    for _, mx, my, mz, _ in iterate_over_cartesian(max_order):
+        data_ref_cartesian[(mx, my, mz)] = data_ref_cartesian[(mx, my, mz)] / \
+                                           np.max(np.abs(data_ref_cartesian[(mx, my, mz)]))
+    for _, l, m, _ in iterate_over_spherical(max_order):
+        data_ref_spherical[(l, m)] = data_ref_spherical[(l, m)] / \
+                                           np.max(np.abs(data_ref_spherical[(l, m)]))
 
     if not comsol_direct:
         with open(f"data/meep/{meep}.pickle", "rb") as fd:
             theta_meas, phi_meas, e_r_meas, e_theta_meas, e_phi_meas = pickle.load(fd)
     else:
-        # case = f"comsol/{case}"
-        if "000" in meep:
+        if "_000_" in meep:
             _, _, _, _, theta_meas, phi_meas, e_r_meas, e_theta_meas, e_phi_meas = import_comsol(
                 0, 0, 0, case=f"mathematica/{case}", compensate_symmetry=compensate_symmetry
             )
@@ -324,9 +347,9 @@ def find_optimal_parameters(meep=None, case=None, max_order=2, cartesian=True, p
 
     print("... finished importing and interpolating", end=" ")
     if cartesian:
-        n_moments = len(data_ref)
+        n_moments = len(data_ref_cartesian)
     else:
-        n_moments = (max_order + 1)**2
+        n_moments = len(data_ref_spherical)
 
     total_norm = norm(theta, e_r_meas, e_theta_meas, e_phi_meas)
     figsize_result = (20, 7)
@@ -339,17 +362,19 @@ def find_optimal_parameters(meep=None, case=None, max_order=2, cartesian=True, p
         nonlocal n_called
         total_field = (0, 0, 0)
         if cartesian:
-            moments_iterator = iterate_over(max_order)
+            for _ind, _mx, _my, _mz, _ in iterate_over_cartesian(max_order):
+                _e_r, _e_theta, _e_phi = data_ref_cartesian[(_mx, _my, _mz)]
+                amplitude = (x[_ind] + 1j * x[len(x) // 2 + _ind])
+                total_field = amplitude * _e_r + total_field[0], \
+                              amplitude * _e_theta + total_field[1], \
+                              amplitude * _e_phi + total_field[2]
         else:
-            moments_iterator = iterate_over_spherical_then_cartesian(max_order)
-
-        for _ind, _mx, _my, _mz, _coeff in moments_iterator:
-            _e_r, _e_theta, _e_phi = data_ref[(_mx, _my, _mz)]
-            amplitude = (x[_ind] + 1j * x[len(x) // 2 + _ind]) * _coeff
-            # amplitude = 1
-            total_field = amplitude * _e_r + total_field[0], \
-                          amplitude * _e_theta + total_field[1], \
-                          amplitude * _e_phi + total_field[2]
+            for _ind, _l, _m, _ in iterate_over_spherical(max_order):
+                _e_r, _e_theta, _e_phi = data_ref_spherical[(_l, _m)]
+                amplitude = (x[_ind] + 1j * x[len(x) // 2 + _ind])
+                total_field = amplitude * _e_r + total_field[0], \
+                              amplitude * _e_theta + total_field[1], \
+                              amplitude * _e_phi + total_field[2]
 
         error = norm(theta,
                      (total_field[0]) - e_r_meas,
@@ -376,16 +401,17 @@ def find_optimal_parameters(meep=None, case=None, max_order=2, cartesian=True, p
         tol=1e-8,
         options=dict(disp=False)
     )
-    # res = basinhopping(
-    #     get_error,
-    #     x0,
-    #     1000
-    # )
     res_name = f"{meep}_{case}_{max_order}_{'cartesian' if cartesian else 'spherical'}".replace('/', '_')
     amplitudes = res.x[:n_moments] + 1j * res.x[n_moments:]
     max_size = np.max(np.abs(amplitudes))
 
     # print(f"{np.abs(amplitudes)=}")
+
+    def get_size(ind_):
+        return np.sqrt((np.abs(amplitudes[ind_]) / max_size) / np.pi) * 2 * 20 + 2
+
+    if print_solution:
+        print("Moments:")
 
     fig = plt.figure(figsize=(2.5, 2.5))
     if cartesian:
@@ -399,16 +425,16 @@ def find_optimal_parameters(meep=None, case=None, max_order=2, cartesian=True, p
         axis.yaxis.pane.set_edgecolor('w')
         axis.zaxis.pane.set_edgecolor('w')
 
-        for ind, ax, ay, az, _ in iterate_over(max_order):
+        for ind, ax, ay, az, _ in iterate_over_cartesian(max_order):
             order = ax+ay+az
-            size = (np.abs(amplitudes[ind]) / max_size)**2 * 20 + 2
+            size = get_size(ind)
             color = plt.get_cmap("autumn")(1 - order/(max_order + 1))
             axis.plot(ax, ay, ".", zs=az, markersize=size,
                       color=color)
             axis.plot((ax, ax, ), (ay, ay, ), (-.1, az, ), "-", color=color, zorder=max_order - order,
                       alpha=.2)
             if print_solution:
-                print(ax, ay, az, amplitudes[ind])
+                print(ax, ay, az, f"\t{np.abs(amplitudes[ind]):7.05f}", "<-->", amplitudes[ind])
         axis.set_xlim(0, max_order)
         axis.set_ylim(0, max_order)
         axis.set_zlim(0, max_order)
@@ -422,12 +448,12 @@ def find_optimal_parameters(meep=None, case=None, max_order=2, cartesian=True, p
         for l in range(0, max_order + 1):
             for m in range(-l, l + 1):
                 order = l
-                size = (np.abs(amplitudes[ind]) / max_size)**2 * 20 + 2
+                size = get_size(ind)
                 color = plt.get_cmap("autumn")(1 - order/(max_order + 1))
                 axis.plot(m, l, ".", markersize=size,
                           color=color)
                 if print_solution:
-                    print(l, m, amplitudes[ind])
+                    print(l, m, f"\t{np.abs(amplitudes[ind]):7.05f}", "<-->", amplitudes[ind])
                 ind += 1
         axis.set_ylim(-.2, max_order + .2)
         axis.set_xlim(-max_order - .2, max_order + .2)
@@ -454,14 +480,20 @@ def find_optimal_parameters(meep=None, case=None, max_order=2, cartesian=True, p
 
 
 def main():
-    # find_optimal_parameters(meep=f"sim_results_200_res_-1_eps_200", case="eps_200",
-    #                         plot_during=False,
-    #                         comsol_direct=True, max_order=5, cartesian=False,
-    #                         compensate_symmetry=False)
-    # plot_all_cartesian_results(1, "mathematica/eps_2")
-    # plot_all_spherical_results(1, "mathematica/eps_4")
-    # do_sweep()
-    plot_sweep_results()
+    eps = 6
+    # find_optimal_parameters(meep=f"sim_results_200_res_-1_eps_{eps}", case=f"eps_{eps}",
+    #                         plot_during=True,
+    #                         comsol_direct=True, max_order=2, cartesian=True,
+    #                         compensate_symmetry=False, print_solution=True)
+    # find_optimal_parameters(meep=f"sim_results_200_res_-1_eps_{eps}", case=f"eps_{eps}",
+    #                         plot_during=True,
+    #                         comsol_direct=True, max_order=2, cartesian=False,
+    #                         compensate_symmetry=False, print_solution=True)
+    # plot_all_cartesian_results(2, f"mathematica/eps_{eps}")
+    # plot_all_spherical_results(2, f"mathematica/eps_{eps}")
+    # plt.show()
+    do_sweep()
+    # plot_sweep_results()
     # do_all_moments_plots()
 
 
@@ -499,8 +531,8 @@ def do_all_moments_plots():
 
 
 def do_sweep():
-    for max_order in range(0, 7):
-        for eps_zz in (6, 8, 10, 18, 32, ):  # (1, 2, 3, 4, 5, 6, 8, 10, 18, 32, 56, 100, 200, ):
+    for max_order in range(7):
+        for eps_zz in (1, 2, 3, 4, 5, 6, 8, 10, 18, 32, 56, 100, 200, 1000, 10000, ):
             print(f"--- {eps_zz=}, {max_order=}")
             res = inverse_problem(eps_zz, max_order=max_order, run_meep=False, inverse_crime=eps_zz > 10)
             with open(f"results/sweep/eps_{eps_zz}_max-order_{max_order}.pickle", "wb") as fd:
@@ -509,7 +541,7 @@ def do_sweep():
 
 def plot_sweep_results():
     results = dict()
-    eps_zzs = (1, 2, 3, 4, 5, 6, 8, 10, 18, 32, 56, 100, 200, )
+    eps_zzs = (1, 2, 3, 4, 5, 6, 8, 10, 18, 32, 56, 100, 200, 1000, )  # 10_000, )
     max_orders = list(range(6 + 1))
     for eps_zz in eps_zzs:
         for max_order in max_orders:
@@ -646,7 +678,9 @@ def inverse_problem(eps_zz, max_order=0, plot=False, run_meep=False, inverse_cri
         32: {False: -1, True: -1},
         56: {False: -1, True: -1},
         100: {False: -1, True: -1},
-        200: {False: -1, True: -1}
+        200: {False: -1, True: -1},
+        1_000: {False: -1, True: -1},
+        10_000: {False: -1, True: -1}
     }[eps_zz]
     if run_meep:
         run_simulation(
@@ -664,7 +698,7 @@ def inverse_problem(eps_zz, max_order=0, plot=False, run_meep=False, inverse_cri
             save_name=f"sim_results_200_res_{res[True]}_eps_{eps_zz}"
         )
     comsol_direct = inverse_crime
-    compensate_symmetry = True
+    compensate_symmetry = False
     case = f"eps_{eps_zz}"
     results = {
         ("000", "spherical"): find_optimal_parameters(meep=f"sim_results_000_res_{res[False]}_eps_{eps_zz}", case=case,
@@ -702,7 +736,7 @@ def plot_moments(moments, max_order=2):
     plot_ind = 1
     moment_ind = 0
     max_moments = np.max(np.abs(moments))
-    for _, mx, my, mz, _ in iterate_over(max_order):
+    for _, mx, my, mz, _ in iterate_over_cartesian(max_order):
         amp = moments[moment_ind]
         plt.subplot(max_order + 1, 1, mx + my + mz + 1)
         plt.plot(
