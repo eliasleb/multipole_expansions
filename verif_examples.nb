@@ -1,0 +1,241 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Mathematica 13.3' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       158,          7]
+NotebookDataLength[      7378,        233]
+NotebookOptionsPosition[      7032,        219]
+NotebookOutlinePosition[      7424,        235]
+CellTagsIndexPosition[      7381,        232]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+Cell[BoxData[{
+ RowBox[{"On", "[", "Assert", "]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"R", "=", 
+   RowBox[{"{", 
+    RowBox[{"x", ",", "y", ",", "z"}], "}"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Y", "[", 
+   RowBox[{"l_", ",", "m_"}], "]"}], ":=", 
+  RowBox[{"TransformedField", "[", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"\"\<Spherical\>\"", "->", "\"\<Cartesian\>\""}], ",", 
+    "\[IndentingNewLine]", 
+    RowBox[{
+     RowBox[{"r", "^", "l"}], " ", 
+     RowBox[{"SphericalHarmonicY", "[", 
+      RowBox[{"l", ",", "m", ",", "\[Theta]", ",", "\[Phi]"}], "]"}]}], ",", 
+    "\[IndentingNewLine]", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"r", ",", "\[Theta]", ",", "\[Phi]"}], "}"}], "->", "R"}]}], 
+   "]"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"P", "[", 
+   RowBox[{"l_", ",", "m_"}], "]"}], ":=", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"(", 
+     RowBox[{"-", "1"}], ")"}], "^", "l"}], " ", "4", "\[Pi]", " ", 
+   RowBox[{"\[ImaginaryI]", "/", 
+    RowBox[{"k0", "^", 
+     RowBox[{"(", 
+      RowBox[{"l", "+", "1"}], ")"}]}]}], 
+   RowBox[{"Y", "[", 
+    RowBox[{"l", ",", "m"}], "]"}]}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"f", "[", 
+   RowBox[{"l_", ",", "m_"}], "]"}], ":=", 
+  RowBox[{"Simplify", "@", 
+   RowBox[{"FunctionExpand", "@", 
+    RowBox[{"TransformedField", "[", "\[IndentingNewLine]", 
+     RowBox[{
+      RowBox[{"\"\<Spherical\>\"", "->", "\"\<Cartesian\>\""}], ",", 
+      "\[IndentingNewLine]", 
+      RowBox[{
+       RowBox[{"SphericalHankelH1", "[", 
+        RowBox[{"l", ",", 
+         RowBox[{"k0", " ", "r"}]}], "]"}], 
+       RowBox[{"SphericalHarmonicY", "[", 
+        RowBox[{"l", ",", "m", ",", "\[Theta]", ",", "\[Phi]"}], "]"}]}], ",",
+       "\[IndentingNewLine]", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"r", ",", "\[Theta]", ",", "\[Phi]"}], "}"}], "->", "R"}]}], 
+     "]"}]}]}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"f", "[", "\[Alpha]_", "]"}], ":=", 
+  RowBox[{"D", "[", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"-", 
+      RowBox[{"Exp", "[", 
+       RowBox[{"\[ImaginaryJ]", " ", "k0", 
+        SqrtBox[
+         RowBox[{
+          SuperscriptBox["x", "2"], "+", 
+          SuperscriptBox["y", "2"], "+", 
+          SuperscriptBox["z", "2"]}]]}], "]"}]}], "/", 
+     RowBox[{"(", 
+      RowBox[{"4", "\[Pi]", " ", 
+       SqrtBox[
+        RowBox[{
+         SuperscriptBox["x", "2"], "+", 
+         SuperscriptBox["y", "2"], "+", 
+         SuperscriptBox["z", "2"]}]]}], ")"}]}], ",", "\[IndentingNewLine]", 
+    RowBox[{"{", 
+     RowBox[{"x", ",", 
+      RowBox[{"\[Alpha]", "[", 
+       RowBox[{"[", "1", "]"}], "]"}]}], "}"}], ",", 
+    RowBox[{"{", 
+     RowBox[{"y", ",", 
+      RowBox[{"\[Alpha]", "[", 
+       RowBox[{"[", "2", "]"}], "]"}]}], "}"}], ",", 
+    RowBox[{"{", 
+     RowBox[{"z", ",", 
+      RowBox[{"\[Alpha]", "[", 
+       RowBox[{"[", "3", "]"}], "]"}]}], "}"}]}], 
+   "]"}]}], "\[IndentingNewLine]", 
+ RowBox[{"Assert", "[", 
+  RowBox[{"Simplify", "[", 
+   RowBox[{
+    RowBox[{"P", "[", 
+     RowBox[{"2", ",", "0"}], "]"}], "==", 
+    RowBox[{"\[ImaginaryI]", " ", 
+     RowBox[{
+      RowBox[{"Sqrt", "[", 
+       RowBox[{"5", "\[Pi]"}], "]"}], "/", 
+      RowBox[{"k0", "^", "3"}]}], 
+     RowBox[{"(", 
+      RowBox[{
+       RowBox[{"2", 
+        RowBox[{"z", "^", "2"}]}], "-", 
+       RowBox[{"x", "^", "2"}], "-", 
+       RowBox[{"y", "^", "2"}]}], ")"}]}]}], "]"}], 
+  "]"}], "\[IndentingNewLine]", 
+ RowBox[{"Assert", "[", 
+  RowBox[{"Simplify", "[", 
+   RowBox[{
+    RowBox[{"\[ImaginaryI]", " ", 
+     RowBox[{
+      RowBox[{"Sqrt", "[", 
+       RowBox[{"5", "\[Pi]"}], "]"}], "/", 
+      RowBox[{"k0", "^", "3"}]}], 
+     RowBox[{"(", 
+      RowBox[{
+       RowBox[{"2", 
+        RowBox[{"f", "[", 
+         RowBox[{"{", 
+          RowBox[{"0", ",", "0", ",", "2"}], "}"}], "]"}]}], "-", 
+       RowBox[{"f", "[", 
+        RowBox[{"{", 
+         RowBox[{"0", ",", "2", ",", "0"}], "}"}], "]"}], "-", 
+       RowBox[{"f", "[", 
+        RowBox[{"{", 
+         RowBox[{"2", ",", "0", ",", "0"}], "}"}], "]"}]}], ")"}]}], "==", 
+    RowBox[{"f", "[", 
+     RowBox[{"2", ",", "0"}], "]"}]}], "]"}], "]"}], "\[IndentingNewLine]", 
+ RowBox[{"Assert", "[", 
+  RowBox[{
+   RowBox[{"z", "^", "2"}], "==", 
+   RowBox[{"Simplify", "[", 
+    RowBox[{
+     RowBox[{"2", "/", "3"}], 
+     RowBox[{"(", 
+      RowBox[{
+       RowBox[{
+        RowBox[{"Sqrt", "[", "\[Pi]", "]"}], 
+        RowBox[{"R", ".", "R"}], " ", 
+        RowBox[{"Y", "[", 
+         RowBox[{"0", ",", "0"}], "]"}]}], "+", 
+       RowBox[{"2", 
+        RowBox[{"Sqrt", "[", 
+         RowBox[{"\[Pi]", "/", "5"}], "]"}], 
+        RowBox[{"Y", "[", 
+         RowBox[{"2", ",", "0"}], "]"}]}]}], ")"}]}], "]"}]}], 
+  "]"}], "\[IndentingNewLine]", 
+ RowBox[{"Assert", "[", 
+  RowBox[{
+   RowBox[{"z", "^", "2"}], "==", 
+   RowBox[{"Simplify", "[", 
+    RowBox[{
+     RowBox[{"-", "\[ImaginaryI]"}], " ", 
+     RowBox[{"k0", "/", "6"}], 
+     RowBox[{"(", 
+      RowBox[{
+       RowBox[{
+        RowBox[{"1", "/", 
+         RowBox[{"Sqrt", "[", "\[Pi]", "]"}]}], 
+        RowBox[{"R", ".", "R"}], " ", 
+        RowBox[{"P", "[", 
+         RowBox[{"0", ",", "0"}], "]"}]}], "+", 
+       RowBox[{"2", 
+        RowBox[{
+         RowBox[{"k0", "^", "2"}], "/", 
+         RowBox[{"Sqrt", "[", 
+          RowBox[{"5", "\[Pi]"}], "]"}]}], 
+        RowBox[{"P", "[", 
+         RowBox[{"2", ",", "0"}], "]"}]}]}], ")"}]}], "]"}]}], 
+  "]"}], "\[IndentingNewLine]", 
+ RowBox[{"Assert", "[", 
+  RowBox[{"Simplify", "[", 
+   RowBox[{
+    RowBox[{"\[ImaginaryI]", " ", 
+     RowBox[{
+      RowBox[{"k0", "^", "3"}], "/", "6"}], 
+     RowBox[{"(", 
+      RowBox[{
+       RowBox[{
+        RowBox[{"1", "/", 
+         RowBox[{"Sqrt", "[", "\[Pi]", "]"}]}], 
+        RowBox[{"f", "[", 
+         RowBox[{"0", ",", "0"}], "]"}]}], "-", 
+       RowBox[{
+        RowBox[{"2", "/", 
+         RowBox[{"Sqrt", "[", 
+          RowBox[{"5", "\[Pi]"}], "]"}]}], 
+        RowBox[{"f", "[", 
+         RowBox[{"2", ",", "0"}], "]"}]}]}], ")"}]}], "==", 
+    RowBox[{"f", "[", 
+     RowBox[{"{", 
+      RowBox[{"0", ",", "0", ",", "2"}], "}"}], "]"}]}], "]"}], 
+  "]"}]}], "Input",
+ CellChangeTimes->{{3.93323105634795*^9, 3.933231254825097*^9}, {
+  3.933231301359774*^9, 3.933231526241205*^9}, {3.9332315650975523`*^9, 
+  3.933231920303946*^9}, {3.933231952879695*^9, 3.9332320238666353`*^9}},
+ CellLabel->
+  "In[242]:=",ExpressionUUID->"a28789b2-e5c4-4c58-998a-e75b68d78f28"]
+},
+WindowSize->{1152, 911},
+WindowMargins->{{4, Automatic}, {Automatic, 4}},
+FrontEndVersion->"13.3 for Mac OS X ARM (64-bit) (July 24, 2023)",
+StyleDefinitions->"Default.nb",
+ExpressionUUID->"b8c2da74-450e-4458-8283-5e156b6b708f"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[558, 20, 6470, 197, 530, "Input",ExpressionUUID->"a28789b2-e5c4-4c58-998a-e75b68d78f28"]
+}
+]
+*)
+
