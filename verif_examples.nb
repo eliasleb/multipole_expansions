@@ -10,10 +10,10 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[       158,          7]
-NotebookDataLength[      7378,        233]
-NotebookOptionsPosition[      7032,        219]
-NotebookOutlinePosition[      7424,        235]
-CellTagsIndexPosition[      7381,        232]
+NotebookDataLength[     10101,        311]
+NotebookOptionsPosition[      9567,        295]
+NotebookOutlinePosition[      9959,        311]
+CellTagsIndexPosition[      9916,        308]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
@@ -215,7 +215,83 @@ Cell[BoxData[{
   3.933231301359774*^9, 3.933231526241205*^9}, {3.9332315650975523`*^9, 
   3.933231920303946*^9}, {3.933231952879695*^9, 3.9332320238666353`*^9}},
  CellLabel->
-  "In[242]:=",ExpressionUUID->"a28789b2-e5c4-4c58-998a-e75b68d78f28"]
+  "In[198]:=",ExpressionUUID->"a28789b2-e5c4-4c58-998a-e75b68d78f28"],
+
+Cell["\<\
+Verification of the formula for spherical harmonics representing a polynomial\
+\
+\>", "Text",
+ CellChangeTimes->{{3.943942530630272*^9, 
+  3.943942546873592*^9}},ExpressionUUID->"761c6a3a-f981-4bbc-80e5-\
+68e122a2728a"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"poly", "=", 
+   RowBox[{
+    RowBox[{"x", "^", "2"}], "+", 
+    RowBox[{"z", "^", "2"}], "-", 
+    RowBox[{"2", 
+     RowBox[{"y", "^", "2"}]}]}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Assert", "[", 
+   RowBox[{
+    RowBox[{"Simplify", "@", 
+     RowBox[{"Laplacian", "[", 
+      RowBox[{"poly", ",", "R"}], "]"}]}], "==", "0"}], "]"}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"polySpherical", "=", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"TransformedField", "[", 
+      RowBox[{
+       RowBox[{"\"\<Cartesian\>\"", "->", "\"\<Spherical\>\""}], ",", "poly", 
+       ",", 
+       RowBox[{"R", "->", 
+        RowBox[{"{", 
+         RowBox[{"r", ",", "\[Theta]", ",", "\[Phi]"}], "}"}]}]}], "]"}], "/.", 
+     RowBox[{"r", "->", "1"}]}], "//", "Simplify"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"polyFromSpherical", "=", 
+   RowBox[{
+    RowBox[{
+     RowBox[{
+      RowBox[{"Sum", "[", 
+       RowBox[{
+        RowBox[{
+         RowBox[{"Integrate", "[", "\[IndentingNewLine]", 
+          RowBox[{
+           RowBox[{"polySpherical", " ", 
+            RowBox[{"Conjugate", "@", 
+             RowBox[{"SphericalHarmonicY", "[", 
+              RowBox[{"2", ",", "m", ",", "\[Theta]", ",", "\[Phi]"}], 
+              "]"}]}], 
+            RowBox[{"Sin", "[", "\[Theta]", "]"}]}], ",", 
+           "\[IndentingNewLine]", 
+           RowBox[{"{", 
+            RowBox[{"\[Theta]", ",", "0", ",", "\[Pi]"}], "}"}], ",", 
+           RowBox[{"{", 
+            RowBox[{"\[Phi]", ",", "0", ",", 
+             RowBox[{"2", "\[Pi]"}]}], "}"}]}], "\[IndentingNewLine]", "]"}], 
+         
+         RowBox[{"Y", "[", 
+          RowBox[{"2", ",", "m"}], "]"}]}], ",", 
+        RowBox[{"{", 
+         RowBox[{"m", ",", 
+          RowBox[{"-", "2"}], ",", "2"}], "}"}]}], "]"}], "//", "ExpToTrig"}],
+      "//", "TrigExpand"}], "//", "Simplify"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{"Assert", "[", 
+  RowBox[{
+   RowBox[{"Simplify", "[", 
+    RowBox[{"poly", "-", "polyFromSpherical"}], "]"}], "==", "0"}], 
+  "]"}]}], "Input",
+ CellChangeTimes->{{3.9439425483735847`*^9, 3.943942769822586*^9}, {
+  3.943942837474757*^9, 3.943942968676865*^9}},
+ CellLabel->
+  "In[258]:=",ExpressionUUID->"1a548136-fa03-4bd8-b3ab-dc46439bedc9"]
 },
 WindowSize->{1152, 911},
 WindowMargins->{{4, Automatic}, {Automatic, 4}},
@@ -234,7 +310,9 @@ CellTagsIndex->{}
 *)
 (*NotebookFileOutline
 Notebook[{
-Cell[558, 20, 6470, 197, 530, "Input",ExpressionUUID->"a28789b2-e5c4-4c58-998a-e75b68d78f28"]
+Cell[558, 20, 6470, 197, 501, "Input",ExpressionUUID->"a28789b2-e5c4-4c58-998a-e75b68d78f28"],
+Cell[7031, 219, 229, 6, 44, "Text",ExpressionUUID->"761c6a3a-f981-4bbc-80e5-68e122a2728a"],
+Cell[7263, 227, 2300, 66, 220, "Input",ExpressionUUID->"1a548136-fa03-4bd8-b3ab-dc46439bedc9"]
 }
 ]
 *)
