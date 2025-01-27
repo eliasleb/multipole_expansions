@@ -1,7 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import meep as mp
+# import meep as mp
 import pickle
+
+import pandas as pd
 from scipy.optimize import minimize
 from from_mathematica import SPHERICAL_TO_CARTESIAN
 from scipy.interpolate import griddata
@@ -128,7 +130,8 @@ def plot_all_cartesian_results(max_order=3, case=None):
                 overall_max = max(np.max(np.abs(e_r)), np.max(np.abs(e_theta)), np.max(np.abs(e_phi)))
                 e_r, e_theta, e_phi = e_r / overall_max, e_theta / overall_max, e_phi / overall_max
                 plt.figure(figsize=(15, 3))
-                plot_spherical_field(theta, phi, (e_r, e_theta, e_phi), title=f"{ix}, {iy}, {iz}")
+                plot_spherical_field(theta, phi, (e_r, e_theta, e_phi), title=f"{ix}, {iy}, {iz}",
+                                     save_plot_data_filename=f"figs/reference_{ix}-{iy}-{iz}")
                 plt.tight_layout()
                 plt.savefig(f"figs/reference_{ix}_{iy}_{iz}.pdf")
 
@@ -149,7 +152,8 @@ def plot_all_spherical_results(max_order=3, case=None):
             e_r, e_theta, e_phi = total_field[0] / overall_max, total_field[1] / overall_max, \
                                   total_field[2] / overall_max
             plt.figure(figsize=(15, 3))
-            plot_spherical_field(theta, phi, (e_r, e_theta, e_phi), title=f"{l}, {m}")
+            plot_spherical_field(theta, phi, (e_r, e_theta, e_phi), title=f"{l}, {m}",
+                                 save_plot_data_filename=f"figs/reference_{l}-{m}")
             plt.tight_layout()
             plt.savefig(f"figs/reference_{l}_{m}.pdf")
     plt.show()
@@ -228,7 +232,7 @@ def plot_spherical_grid():
 
 
 def plot_spherical_field(
-        theta, phi, e, e_comp=None, title=""
+        theta, phi, e, e_comp=None, title="", save_plot_data_filename=None
 ):
     kwargs = dict(cmap="jet", levels=np.linspace(0, 1, 11))
     to_plot = spherical_vector_to_cartesian(theta, phi, e)
@@ -253,7 +257,13 @@ def plot_spherical_field(
 
     plt.clf()
     plt.subplot(n_rows, 3, 1)
-    plt.tricontourf(phi_for_plot, theta * 180 / np.pi, np.abs(to_plot[0]), **kwargs)
+    args = (phi_for_plot, theta * 180 / np.pi, np.abs(to_plot[0]))
+    plt.tricontourf(*args, **kwargs)
+    if save_plot_data_filename is not None:
+        np.savetxt(
+            f"{save_plot_data_filename}_x.txt",
+            np.stack(args)
+        )
     plt.ylabel("θ (°)")
     plot_spherical_grid()
     set_lims()
@@ -271,7 +281,13 @@ def plot_spherical_field(
 
     if comp_to_plot is not None:
         plt.subplot(n_rows, 3, 4)
-        plt.tricontourf(phi_for_plot, theta * 180 / np.pi, np.abs(comp_to_plot[0]), **kwargs)
+        args = (phi_for_plot, theta * 180 / np.pi, np.abs(comp_to_plot[0]))
+        plt.tricontourf(*args, **kwargs)
+        if save_plot_data_filename is not None:
+            np.savetxt(
+                f"{save_plot_data_filename}_x_comp.txt",
+                np.stack(args)
+            )
         plt.ylabel("θ (°)")
         plt.xlabel("φ (°)")
         plot_spherical_grid()
@@ -294,6 +310,7 @@ def plot_spherical_field(
 
 def find_optimal_parameters(meep=None, case=None, max_order=2, cartesian=True, plot_during=False, comsol_direct=False,
                             compensate_symmetry=False, print_solution=False):
+    plt.close("all")
     print(f"Running {meep=}, {case=}, {max_order=}, {cartesian=}", end=" ")
 
     data_ref_cartesian = {}
@@ -358,7 +375,7 @@ def find_optimal_parameters(meep=None, case=None, max_order=2, cartesian=True, p
 
     n_called = 0
 
-    def get_error(x, plot=plot_during, plt_wait=True):
+    def get_error(x, plot=plot_during, plt_wait=True, save_plot_filename=None):
         nonlocal n_called
         total_field = (0, 0, 0)
         if cartesian:
@@ -383,7 +400,8 @@ def find_optimal_parameters(meep=None, case=None, max_order=2, cartesian=True, p
 
         if plot and n_called % 100 == 0:
             plot_spherical_field(theta, phi, total_field, e_comp=(e_r_meas, e_theta_meas, e_phi_meas),
-                                 title=f"{meep}, residual error = {error ** .5 * 100:.2f} %, prediction")
+                                 title=f"{meep}, residual error = {error ** .5 * 100:.2f} %, prediction",
+                                 save_plot_data_filename=save_plot_filename)
 
             if plt_wait:
                 plt.pause(.0001)
@@ -414,6 +432,7 @@ def find_optimal_parameters(meep=None, case=None, max_order=2, cartesian=True, p
         print("Moments:")
 
     fig = plt.figure(figsize=(2.5, 2.5))
+    data = []
     if cartesian:
         axis = fig.add_subplot(projection='3d')
         axis.view_init(elev=30, azim=45, roll=0)
@@ -424,13 +443,13 @@ def find_optimal_parameters(meep=None, case=None, max_order=2, cartesian=True, p
         axis.xaxis.pane.set_edgecolor('w')
         axis.yaxis.pane.set_edgecolor('w')
         axis.zaxis.pane.set_edgecolor('w')
-
         for ind, ax, ay, az, _ in iterate_over_cartesian(max_order):
-            order = ax+ay+az
+            order = ax + ay + az
             size = get_size(ind)
             color = plt.get_cmap("autumn")(1 - order/(max_order + 1))
             axis.plot(ax, ay, ".", zs=az, markersize=size,
                       color=color)
+            data.append((ax, ay, az, size))
             axis.plot((ax, ax, ), (ay, ay, ), (-.1, az, ), "-", color=color, zorder=max_order - order,
                       alpha=.2)
             if print_solution:
@@ -441,7 +460,6 @@ def find_optimal_parameters(meep=None, case=None, max_order=2, cartesian=True, p
         axis.set_xlabel("ax")
         axis.set_ylabel("ay")
         axis.set_zlabel("az")
-
     else:
         axis = fig.add_subplot()
         ind = 0
@@ -452,6 +470,7 @@ def find_optimal_parameters(meep=None, case=None, max_order=2, cartesian=True, p
                 color = plt.get_cmap("autumn")(1 - order/(max_order + 1))
                 axis.plot(m, l, ".", markersize=size,
                           color=color)
+                data.append((m, l, size))
                 if print_solution:
                     print(l, m, f"\t{np.abs(amplitudes[ind]):7.05f}", "<-->", amplitudes[ind])
                 ind += 1
@@ -461,12 +480,18 @@ def find_optimal_parameters(meep=None, case=None, max_order=2, cartesian=True, p
         axis.set_ylabel("l")
         plt.grid()
 
+    np.savetxt(
+        f"figs/{res_name}_moments_data.txt",
+        np.array(data),
+        delimiter=","
+    )
+
     plt.tight_layout()
     plt.savefig(f"figs/{res_name}_moments.pdf")
 
     plt.figure(figsize=figsize_result)
     n_called = 0
-    residual_error = get_error(res.x, plot=True, plt_wait=False)
+    residual_error = get_error(res.x, plot=True, plt_wait=False, save_plot_filename=f"figs/{res_name}_fields_data")
     plt.tight_layout()
     plt.savefig(f"figs/{res_name}_fields.pdf")
 
@@ -480,20 +505,25 @@ def find_optimal_parameters(meep=None, case=None, max_order=2, cartesian=True, p
 
 
 def main():
-    eps = 8
-    find_optimal_parameters(meep=f"sim_results_200_res_-1_eps_{eps}", case=f"eps_{eps}",
+    eps = 4
+    res = 50
+    compensate_symmetry = True
+    find_optimal_parameters(meep=f"sim_results_000_res_{res}_eps_{eps}", case=f"eps_{eps}",
                             plot_during=True,
-                            comsol_direct=True, max_order=2, cartesian=True,
-                            compensate_symmetry=False, print_solution=True)
-    find_optimal_parameters(meep=f"sim_results_200_res_-1_eps_{eps}", case=f"eps_{eps}",
+                            comsol_direct=False, max_order=2, cartesian=False,
+                            compensate_symmetry=compensate_symmetry, print_solution=True)
+    find_optimal_parameters(meep=f"sim_results_000_res_{res}_eps_{eps}", case=f"eps_{eps}",
                             plot_during=True,
-                            comsol_direct=True, max_order=2, cartesian=False,
-                            compensate_symmetry=False, print_solution=True)
-    eps = 10_000
-    find_optimal_parameters(meep=f"sim_results_200_res_-1_eps_{eps}", case=f"eps_{eps}",
+                            comsol_direct=False, max_order=2, cartesian=True,
+                            compensate_symmetry=compensate_symmetry, print_solution=True)
+    find_optimal_parameters(meep=f"sim_results_200_res_{res}_eps_{eps}", case=f"eps_{eps}",
                             plot_during=True,
-                            comsol_direct=True, max_order=2, cartesian=False,
-                            compensate_symmetry=False, print_solution=True)
+                            comsol_direct=False, max_order=2, cartesian=False,
+                            compensate_symmetry=compensate_symmetry, print_solution=True)
+    find_optimal_parameters(meep=f"sim_results_200_res_{res}_eps_{eps}", case=f"eps_{eps}",
+                            plot_during=True,
+                            comsol_direct=False, max_order=2, cartesian=True,
+                            compensate_symmetry=compensate_symmetry, print_solution=True)
     plot_all_cartesian_results(1, f"mathematica/eps_{eps}")
     plot_all_spherical_results(1, f"mathematica/eps_{eps}")
     plt.show()
@@ -506,7 +536,7 @@ def do_all_moments_plots():
     eps_zz = 4
     case = f"eps_{eps_zz}"
     res = 50
-    max_order = 4
+    max_order = 3
     plot = True
     find_optimal_parameters(
         meep=f"sim_results_000_res_{res}_eps_{eps_zz}",
@@ -558,24 +588,28 @@ def plot_sweep_results():
     fig, ax1 = plt.subplots(figsize=(6, 4))
     color1, color2 = "darkblue", "royalblue"
     color3, color4 = "darkslategray", "darkturquoise"
+    y_000_spherical = [100 - results[(eps_zz, m)][("000", "spherical")] * 100 for m in max_orders]
+    y_000_cartesian = [100 - results[(eps_zz, m)][("000", "cartesian")] * 100 for m in max_orders]
+    y_200_spherical = [100 - results[(eps_zz, m)][("200", "spherical")] * 100 for m in max_orders]
+    y_200_cartesian = [100 - results[(eps_zz, m)][("200", "cartesian")] * 100 for m in max_orders]
     plt.plot(
         max_orders,
-        [100 - results[(eps_zz, m)][("000", "spherical")] * 100 for m in max_orders], "-", color=color1,
+        y_000_spherical, "-", color=color1,
         label="000, spherical"
     )
     plt.plot(
         max_orders,
-        [100 - results[(eps_zz, m)][("000", "cartesian")] * 100 for m in max_orders], "--", color=color2,
+        y_000_cartesian, "--", color=color2,
         label="000, Cartesian"
     )
     plt.plot(
         max_orders,
-        [100 - results[(eps_zz, m)][("200", "spherical")] * 100 for m in max_orders], "-o", color=color1,
+        y_200_spherical, "-o", color=color1,
         label="200, spherical"
     )
     plt.plot(
         max_orders,
-        [100 - results[(eps_zz, m)][("200", "cartesian")] * 100 for m in max_orders], "-d", color=color2,
+        y_200_cartesian, "-d", color=color2,
         label="200, cartesian"
     )
     plt.xlabel("Truncation order")
@@ -588,18 +622,17 @@ def plot_sweep_results():
     ax2 = ax1.twinx()  # instantiate a second Axes that shares the same x-axis
 
     n = np.array(max_orders)
-
-    ax2.plot(
-        n,
-        [
+    n_spherical = [
             sum([2 * i + 1 for i in range(0, ni + 1)]) for ni in n
-        ], "-.", label="Spherical", color=color3
+        ]
+    n_cartesian = [
+            sum([(i + 1) * (i + 2) / 2 for i in range(0, ni + 1)]) for ni in n
+        ]
+    ax2.plot(
+        n, n_spherical, "-.", label="Spherical", color=color3
     )
     ax2.plot(
-        n,
-        [
-            sum([(i + 1) * (i + 2) / 2 for i in range(0, ni + 1)]) for ni in n
-        ], ":",
+        n, n_cartesian, ":",
         label="Cartesian", color=color4
     )
     plt.legend()
@@ -609,24 +642,44 @@ def plot_sweep_results():
 
     plt.tight_layout()
     plt.savefig("figs/metrics_vs_n.pdf")
+    np.savetxt("figs/data_metrics_vs_n_1.txt",
+               np.stack((
+                   max_orders,
+                   y_000_spherical,
+                   y_000_cartesian,
+                   y_200_spherical,
+                   y_200_cartesian
+               ))
+               )
+    np.savetxt("figs/data_metrics_vs_n_2.txt",
+               np.stack((
+                    n, n_spherical, n_cartesian
+               ))
+               )
 
     plt.figure(figsize=(4, 3))
     # lines = ["-", "--", ":", "-.", "-:"]
     for ind, max_order in enumerate(max_orders):
         if ind % 2 == 1 or max_order < 2:
             continue
+        d = [100 - results[(eps_zz, max_order)][("200", "spherical")] * 100 for eps_zz in eps_zzs]
         plt.semilogx(
             eps_zzs,
-            [100 - results[(eps_zz, max_order)][("200", "spherical")] * 100 for eps_zz in eps_zzs], f"-",
+            d, f"-",
             color=plt.get_cmap("autumn")(1 - ind/len(max_orders)),
             label=f"l_max={max_order}"
         )
         plt.plot(
             eps_zzs,
-            [100 - results[(eps_zz, max_order)][("200", "spherical")] * 100 for eps_zz in eps_zzs], f".",
+            d, f".",
             color=plt.get_cmap("autumn")(1 - ind/len(max_orders)),
             label=f"l_max={max_order}"
         )
+        np.savetxt(
+            f"figs/metrics_vs_eps_zz_max_order_{max_order}.txt",
+            np.stack((eps_zzs, d))
+        )
+
     plt.xlabel("eps_zz")
     plt.ylabel("% explained ground truth")
     plt.legend()
